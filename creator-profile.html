@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="profileTitle">Profil Kreator - Karyaku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="home.html">Karyaku</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="marketplace.html">Marketplace</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="creator-profile.html">Kreator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5 pt-5">
+        
+        <div id="dynamicContent">
+            </div>
+
+    </div>
+    
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadModalLabel">Upload Karya Digital Baru 🖼️</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="alert alert-info">**SIMULASI:** Data ini akan dikirim ke server/database untuk upload.</p>
+            <form id="uploadForm">
+              <div class="mb-3">
+                <label for="karyaTitle" class="form-label">Judul Karya</label>
+                <input type="text" class="form-control" id="karyaTitle" required>
+              </div>
+              <div class="mb-3">
+                <label for="karyaFile" class="form-label">File Karya (Gambar)</label>
+                <input type="file" class="form-control" id="karyaFile" accept="image/*" required>
+              </div>
+              <div class="mb-3">
+                <label for="karyaPrice" class="form-label">Harga (Rp)</label>
+                <input type="number" class="form-control" id="karyaPrice" required>
+              </div>
+              <div class="mb-3">
+                <label for="karyaDesc" class="form-label">Deskripsi</label>
+                <textarea class="form-control" id="karyaDesc" rows="3" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Simpan Karya</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p>&copy; 2025 Karyaku. All Rights Reserved.</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+    <script src="db-utils.js"></script>
+    <script src="navbar-utils.js"></script>
+    <script>
+        // Default creator data (for initial seed data or fallback)
+        let creatorData = {};
+        let allProducts = {};
+
+        const PRODUCT_IMAGE_OPTIONS = { maxDimension: 1200, quality: 0.82 };
+        const PROFILE_IMAGE_OPTIONS = { maxDimension: 480, quality: 0.88 };
+        const MAX_IMAGE_FILE_SIZE_MB = 6;
+        const DEFAULT_PRODUCT_IMAGE = 'https://via.placeholder.com/400x300.png?text=Karya';
+
+        function getInitialLetter(name = '') {
+            const trimmed = (name || '').trim();
+            return trimmed ? trimmed.charAt(0).toUpperCase() : 'K';
+        }
+
+        function getPlaceholderAvatar(name = '', size = 150) {
+            const initial = encodeURIComponent(getInitialLetter(name));
+            return `https://via.placeholder.com/${size}x${size}.png?text=${initial}`;
+        }
+
+        function getSafeCreatorImageData(data, size = 150) {
+            const fallback = data?.placeholder || getPlaceholderAvatar(data?.name || '', size);
+            const src = data?.image && data.image.trim() ? data.image : fallback;
+            return { src, fallback };
+        }
+
+        function getImageValidationError(file, maxSizeMb = MAX_IMAGE_FILE_SIZE_MB) {
+            if (!file) return 'File gambar tidak ditemukan.';
+            if (!file.type.startsWith('image/')) {
+                return 'File harus berupa gambar (JPG, PNG, atau WebP).';
+            }
+            const maxBytes = maxSizeMb * 1024 * 1024;
+            if (file.size > maxBytes) {
+                return `Ukuran file terlalu besar. Maksimal ${maxSizeMb}MB.`;
+            }
+            return '';
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function loadImageElement(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+        }
+
+        async function optimizeImageFile(file, options = {}) {
+            if (!file) {
+                throw new Error('File gambar tidak valid.');
+            }
+            const { maxDimension = 1200, quality = 0.85 } = options;
+            const dataUrl = await readFileAsDataURL(file);
+            const imageElement = await loadImageElement(dataUrl);
+            let { width, height } = imageElement;
+            const largestSide = Math.max(width, height);
+            if (largestSide > maxDimension) {
+                const scale = maxDimension / largestSide;
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext('2d');
+            if (!context) {
+                throw new Error('Canvas context tidak tersedia.');
+            }
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, width, height);
+            context.drawImage(imageElement, 0, 0, width, height);
+
+            // Convert to JPEG to minimize storage footprint
+            return canvas.toDataURL('image/jpeg', quality);
+        }
+
+        function updateCreatorCardImages(creatorId, newSrc) {
+            if (!creatorId || !newSrc) return;
+            const cardImages = document.querySelectorAll(`[data-creator-card-image="${creatorId}"]`);
+            cardImages.forEach(img => {
+                img.src = newSrc;
+            });
+        }
+
+        function setupProfileImageUpdater(creatorId) {
+            const changeBtn = document.getElementById('changeProfileImageBtn');
+            const fileInput = document.getElementById('profileImageInput');
+            if (!changeBtn || !fileInput) return;
+
+            changeBtn.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', async event => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const validationError = getImageValidationError(file, 4);
+                if (validationError) {
+                    alert(validationError);
+                    fileInput.value = '';
+                    return;
+                }
+
+                const originalText = changeBtn.textContent;
+                changeBtn.disabled = true;
+                changeBtn.textContent = 'Menyimpan...';
+
+                try {
+                    const optimizedImage = await optimizeImageFile(file, PROFILE_IMAGE_OPTIONS);
+                    const result = await updateUserProfileImage(creatorId, optimizedImage);
+                    if (!result.success) {
+                        throw new Error(result.message || 'Gagal menyimpan foto profil.');
+                    }
+
+                    const profileImageElement = document.getElementById('creatorProfileImage');
+                    if (profileImageElement) {
+                        profileImageElement.src = optimizedImage;
+                    }
+
+                    if (creatorData[creatorId]) {
+                        creatorData[creatorId].image = optimizedImage;
+                    }
+                    updateCreatorCardImages(creatorId, optimizedImage);
+                    alert('Foto profil berhasil diperbarui!');
+                } catch (error) {
+                    console.error('Error updating profile image:', error);
+                    alert(error.message || 'Terjadi kesalahan saat memperbarui foto profil.');
+                } finally {
+                    changeBtn.disabled = false;
+                    changeBtn.textContent = originalText;
+                    fileInput.value = '';
+                }
+            });
+        }
+        
+        // Load creators and products from database
+        async function loadData() {
+            try {
+                const users = await getAllUsers();
+                const products = await getAllProducts();
+                
+                // Build creatorData from users
+                creatorData = {};
+                users.forEach(user => {
+                    const safeName = user.name || 'Kreator Karyaku';
+                    const placeholder = getPlaceholderAvatar(safeName);
+                    const normalizedImage = user.image && user.image.trim() ? user.image : placeholder;
+                    creatorData[user.creator_id] = {
+                        name: safeName,
+                        bio: user.bio || `${safeName} | Kreator Karyaku`,
+                        desc: user.description || `Selamat datang di profil ${safeName}!`,
+                        product_ids: [],
+                        image: normalizedImage,
+                        placeholder: placeholder
+                    };
+                });
+                
+                // Build allProducts and link to creators
+                allProducts = {};
+                products.forEach(product => {
+                    allProducts[product.product_id] = {
+                        id: product.product_id,
+                        title: product.title,
+                        price: product.price,
+                        image: product.image_url || 'https://via.placeholder.com/400x300.png?text=Karya',
+                        description: product.description,
+                        creator_id: product.creator_id
+                    };
+                    
+                    // Add product to creator's product_ids
+                    if (creatorData[product.creator_id]) {
+                        if (!creatorData[product.creator_id].product_ids.includes(product.product_id)) {
+                            creatorData[product.creator_id].product_ids.push(product.product_id);
+                        }
+                    }
+                });
+                
+                // Initialize page with loaded data
+                initCreatorPage();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Fallback to empty data
+                initCreatorPage();
+            }
+        }
+
+        function renderCreatorList() {
+            const IS_LOGGED_IN = localStorage.getItem('karyaku_is_logged_in') === 'true';
+            const loggedInCreatorId = localStorage.getItem('karyaku_creator_id');
+            
+            let html = `
+                <h2 class="fw-bold text-center mb-5">Daftar Semua Kreator Karyaku</h2>
+            `;
+            
+            // Add upload button if logged in and on main creator page (no id param)
+            if (IS_LOGGED_IN) {
+                html += `
+                    <div class="text-center mb-4">
+                        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#uploadModal">Upload Your Art</button>
+                    </div>
+                `;
+            }
+            
+            html += `<div class="row row-cols-1 row-cols-md-3 g-4">`;
+            
+            for (const id in creatorData) {
+                const data = creatorData[id];
+                const imageData = getSafeCreatorImageData(data);
+                html += `
+                    <div class="col">
+                        <div class="card h-100 text-center shadow-sm">
+                            <div class="card-body">
+                                <img src="${imageData.src}" class="rounded-circle mb-3 border border-3 border-primary creator-profile-picture" alt="Profil Kreator" loading="lazy" data-creator-card-image="${id}" onerror="this.onerror=null;this.src='${imageData.fallback}'">
+                                <h5 class="card-title fw-bold">${data.name}</h5>
+                                <p class="card-text text-muted small">${data.bio}</p>
+                                <a href="creator-profile.html?id=${id}" class="btn btn-sm btn-outline-primary mt-2">Lihat Portofolio (${data.product_ids.length} Karya)</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            document.getElementById('dynamicContent').innerHTML = html;
+        }
+
+        function renderCreatorProfile(creatorId, data) {
+            const IS_LOGGED_IN = localStorage.getItem('karyaku_is_logged_in') === 'true';
+            const loggedInCreatorId = localStorage.getItem('karyaku_creator_id');
+            
+            // Only show upload button if user is logged in AND is the same creator
+            const showUploadButton = IS_LOGGED_IN && loggedInCreatorId === creatorId;
+            const imageData = getSafeCreatorImageData(data);
+            
+            document.getElementById('profileTitle').textContent = `Profil ${data.name} - Karyaku`;
+            let profileHtml = `
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center">
+                        <img src="${imageData.src}" id="creatorProfileImage" class="rounded-circle mb-3 border border-3 border-primary creator-profile-picture" alt="Profil Kreator" onerror="this.onerror=null;this.src='${imageData.fallback}'">
+                        <h2 class="fw-bold" id="creatorName">${data.name}</h2>
+                        <p class="text-muted" id="creatorBio">${data.bio}</p>
+                        <p id="creatorDesc">${data.desc}</p>
+                        ${showUploadButton ? `
+                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center mt-3">
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">Upload Karya Baru</button>
+                                <button class="btn btn-outline-secondary" id="changeProfileImageBtn" type="button">Ubah Foto Profil</button>
+                                <input type="file" class="d-none" id="profileImageInput" accept="image/*">
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <h3 class="mb-4" id="portfolioTitle">Portofolio Karya ${data.name.split(' ')[0]}</h3>
+                    </div>
+                    <div id="portfolioGrid" class="row">
+                        </div>
+                </div>
+            `;
+            document.getElementById('dynamicContent').innerHTML = profileHtml;
+            
+            const portfolioGrid = document.getElementById('portfolioGrid');
+            if (data.product_ids.length === 0) {
+                portfolioGrid.innerHTML = '<p class="text-center text-muted">Kreator ini belum memiliki karya.</p>';
+            } else {
+                data.product_ids.forEach(productId => {
+                    const karya = allProducts[productId];
+                    if (karya) {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4 mb-4';
+                        const productImage = karya.image || DEFAULT_PRODUCT_IMAGE;
+                        const priceLabel = karya.price || 'Harga belum tersedia';
+                        col.innerHTML = `
+                            <a href="product-detail.html?id=${karya.id}" class="card h-100 shadow-sm text-decoration-none text-dark">
+                                <div class="card-img-wrapper">
+                                    <img src="${productImage}" class="card-img-top" alt="${karya.title}" loading="lazy" onerror="this.onerror=null;this.src='${DEFAULT_PRODUCT_IMAGE}'">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">${karya.title}</h5>
+                                    <p class="card-text text-primary fw-bold">${priceLabel}</p>
+                                </div>
+                            </a>
+                        `;
+                        portfolioGrid.appendChild(col);
+                    }
+                });
+            }
+
+            if (showUploadButton) {
+                setupProfileImageUpdater(creatorId);
+            }
+        }
+
+        function initCreatorPage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const creatorId = urlParams.get('id');
+            const data = creatorData[creatorId];
+
+            if (data) {
+                // Tampilkan Profil Detail jika ada ID
+                renderCreatorProfile(creatorId, data);
+            } else {
+                // Tampilkan Daftar Kreator jika tidak ada ID
+                renderCreatorList();
+            }
+        }
+        
+        // Initialize database and load data
+        initDatabase().then(() => {
+            loadData();
+        });
+        
+        // Upload Form Handler with Login Check and Database Saving
+        document.addEventListener('DOMContentLoaded', () => {
+             const uploadForm = document.getElementById('uploadForm');
+             if (uploadForm) {
+                uploadForm.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+                    
+                    // Check if user is logged in
+                    const IS_LOGGED_IN = localStorage.getItem('karyaku_is_logged_in') === 'true';
+                    if (!IS_LOGGED_IN) {
+                        alert("Anda harus login terlebih dahulu untuk mengupload karya!");
+                        window.location.href = 'auth.html';
+                        return;
+                    }
+                    
+                    // Get form data
+                    const title = document.getElementById('karyaTitle').value.trim();
+                    const price = document.getElementById('karyaPrice').value.trim();
+                    const description = document.getElementById('karyaDesc').value.trim();
+                    const fileInput = document.getElementById('karyaFile');
+                    const file = fileInput.files[0];
+                    
+                    if (!title || !price || !description || !file) {
+                        alert("Mohon lengkapi semua field!");
+                        return;
+                    }
+
+                    const imageValidationError = getImageValidationError(file);
+                    if (imageValidationError) {
+                        alert(imageValidationError);
+                        return;
+                    }
+                    
+                    let imageUrl = '';
+                    try {
+                        imageUrl = await optimizeImageFile(file, PRODUCT_IMAGE_OPTIONS);
+                    } catch (imageError) {
+                        console.error('Error optimizing product image:', imageError);
+                        alert("Gagal memproses gambar. Silakan coba lagi dengan file lain.");
+                        return;
+                    }
+                    
+                    // Get creator info
+                    const creatorId = localStorage.getItem('karyaku_creator_id') || '';
+                    const creatorName = localStorage.getItem('karyaku_username') || '';
+                    
+                    // Generate product ID
+                    const productId = `${creatorId}_${Date.now()}`;
+                    
+                    // Save to database
+                    const result = await addProduct(
+                        productId,
+                        creatorId,
+                        title,
+                        `Rp ${parseInt(price, 10).toLocaleString('id-ID')}`,
+                        description,
+                        imageUrl,
+                        file.name,
+                        `Format: ${file.type}, Ukuran asli: ${file.size} bytes`
+                    );
+                    
+                    if (result.success) {
+                        alert("Karya berhasil diupload! Data telah disimpan ke database. Karya Anda sekarang muncul di portofolio.");
+                        
+                        // Reset form
+                        uploadForm.reset();
+                        
+                        // Close modal
+                        const modalElement = document.getElementById('uploadModal');
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                        modal.hide();
+                        
+                        // Reload data and refresh page content
+                        await loadData();
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const currentCreatorId = urlParams.get('id');
+                        if (currentCreatorId !== creatorId) {
+                            window.location.href = `creator-profile.html?id=${creatorId}`;
+                        }
+                    } else {
+                        alert(result.message || "Terjadi kesalahan saat menyimpan karya. Silakan coba lagi.");
+                    }
+                });
+             }
+        });
+    </script>
+</body>
+</html>
