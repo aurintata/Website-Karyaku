@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitur Premium - Karyaku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="home.html">Karyaku</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="marketplace.html">Marketplace</a></li>
+                    <li class="nav-item"><a class="nav-link" href="creator-profile.html">Kreator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5 pb-5">
+        <header class="text-center mb-5">
+            <h1 class="fw-bold mb-3">Tingkatkan Karier Kreatifmu</h1>
+            <p class="lead text-muted">Pilih paket yang paling sesuai dengan kebutuhan dan ambisimu sebagai kreator.</p>
+        </header>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4 p-md-5 text-center">
+                        <h4 class="fw-bold text-muted mb-3">Paket Standard</h4>
+                        <h2 class="display-3 fw-bold mb-4">Gratis</h2>
+                        <p class="text-muted">Selamanya, ideal untuk kreator pemula.</p>
+                        <hr>
+                        <ul class="list-unstyled text-start mx-auto" style="max-width: 250px;">
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Akses Marketplace Dasar</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Komisi Penjualan Normal (20%)</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Upload Karya Tidak Terbatas</li>
+                            <li class="mb-2"><span class="text-danger me-2">✕</span> Tanpa Tanda Kreator Terverifikasi</li>
+                            <li class="mb-2"><span class="text-danger me-2">✕</span> Tanpa Prioritas Tampil di Galeri</li>
+                        </ul>
+                        <button class="btn btn-outline-secondary w-100 mt-4" disabled>Paket Aktif</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-5">
+                <div class="card h-100 shadow-lg border-primary border-3">
+                    <div class="card-header bg-primary text-white text-center py-2 fw-bold">Paling Populer</div>
+                    <div class="card-body p-4 p-md-5 text-center">
+                        <h4 class="fw-bold text-primary mb-3">Paket Pro</h4>
+                        <h2 class="display-3 fw-bold mb-1">Rp 79.000</h2>
+                        <p class="text-muted">/bulan. Tingkatkan eksposur karyamu!</p>
+                        <hr>
+                        <ul class="list-unstyled text-start mx-auto" style="max-width: 250px;">
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Akses Semua Fitur Premium</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> **Komisi Penjualan Rendah (5%)**</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Upload Karya Tidak Terbatas</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> **Tanda Kreator Terverifikasi**</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> **Prioritas Tampil di Galeri**</li>
+                            <li class="mb-2"><span class="text-success me-2">✓</span> Laporan Penjualan Detail</li>
+                        </ul>
+                        <button class="btn btn-lg btn-warning fw-bold w-100 mt-4" onclick="alert('Simulasi Pembelian Paket Pro Rp 79.000/bulan. Silakan implementasikan alur pembayaran nyata di sini.')">Berlangganan Sekarang</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5">
+            <a href="creator-profile.html" class="btn btn-outline-secondary">Kembali ke Profil Kreator</a>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p>&copy; 2025 Karyaku. All Rights Reserved.</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="navbar-utils.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karyaku - Marketplace Seni Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="home.html">Karyaku</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="marketplace.html">Marketplace</a></li>
+                    <li class="nav-item"><a class="nav-link" href="creator-profile.html">Kreator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <header class="hero-section text-white text-center d-flex align-items-center justify-content-center">
+        <div class="container">
+            <h1 class="display-3 fw-bold mb-4">Karyamu,<br>Ceritamu</h1>
+            <p class="lead mb-4 col-lg-8 mx-auto opacity-75">Platform eksklusif yang menghubungkan kreator seni digital Indonesia dengan kolektor global. Jual, beli, dan apresiasi karya tanpa batas.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="marketplace.html" class="btn btn-lg btn-warning fw-bold px-4">Jelajahi Karya</a>
+                <a href="auth.html?mode=jual" class="btn btn-lg btn-primary px-4">Mulai Berjualan</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="about-section py-5">
+        <div class="container py-4">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <span class="badge bg-primary bg-opacity-10 text-primary mb-2 px-3 py-2 rounded-pill">TENTANG KAMI</span>
+                    <h2 class="fw-bold mb-3 display-6">Ekosistem Seni Digital Terpercaya</h2>
+                    <p class="text-muted lead mb-4">Karyaku hadir sebagai solusi bagi ilustrator, desainer, dan seniman digital untuk memonetisasi bakat mereka dengan aman dan mudah.</p>
+                    <p class="text-secondary">Kami menjamin orisinalitas setiap karya yang diunggah dan memberikan sistem pembayaran yang transparan. Bergabunglah dengan ribuan kreator lain yang telah sukses membangun karir digital mereka bersama kami.</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div class="stat-box h-100">
+                                <h3 class="display-5 fw-bold text-primary mb-0" id="countArtworks">0</h3>
+                                <p class="small text-muted fw-bold mt-2 mb-0 ls-1">KARYA DIGITAL</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box h-100">
+                                <h3 class="display-5 fw-bold text-primary mb-0" id="countCreators">0</h3>
+                                <p class="small text-muted fw-bold mt-2 mb-0 ls-1">KREATOR AKTIF</p>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-box h-100">
+                                <h3 class="display-5 fw-bold text-primary mb-0" id="countSales">0</h3>
+                                <p class="small text-muted fw-bold mt-2 mb-0 ls-1">TRANSAKSI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-end mb-5">
+                <div>
+                    <h2 class="fw-bold mb-1">Galeri Kurasi Terbaru</h2>
+                    <p class="text-muted mb-0">Karya pilihan minggu ini yang wajib kamu lihat.</p>
+                </div>
+                <a href="marketplace.html" class="btn btn-outline-dark rounded-pill px-4">Lihat Semua</a>
+            </div>
+            
+            <div class="masonry-grid" id="homeGallery">
+                <div class="text-center w-100 py-5"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white text-center py-4">
+        <div class="container">
+            <p>&copy; 2025 Karyaku. All Rights Reserved.</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+    <script src="db-utils.js"></script>
+    <script src="navbar-utils.js"></script>
+    <script>
+        const IS_LOGGED_IN = localStorage.getItem('karyaku_is_logged_in') === 'true'; 
+
+        function checkAccess(id) {
+            if (IS_LOGGED_IN) {
+                window.location.href = `product-detail.html?id=${id}`;
+            } else {
+                alert("Mohon Maaf, Anda harus Masuk atau Daftar untuk melihat detail lengkap produk dan harga.");
+                window.location.href = 'auth.html?redirect=' + id; 
+            }
+        }
+
+        async function initHome() {
+            try {
+                const db = await initDatabase();
+                
+                // --- 1. Statistik Real-time dari Database ---
+                let productsCount = 0, creatorsCount = 0, salesCount = 0;
+
+                try {
+                    const products = await getAllProducts();
+                    const users = await getAllUsers();
+                    const salesRes = db.exec("SELECT COUNT(*) FROM checkouts");
+                    
+                    productsCount = products.length;
+                    creatorsCount = users.length;
+                    if (salesRes.length > 0 && salesRes[0].values.length > 0) {
+                        salesCount = salesRes[0].values[0][0];
+                    }
+                } catch (e) {
+                    // Fallback jika DB kosong/error
+                    productsCount = 124; creatorsCount = 45; salesCount = 312;
+                }
+
+                animateValue("countArtworks", 0, productsCount, 1500);
+                animateValue("countCreators", 0, creatorsCount, 1500);
+                animateValue("countSales", 0, salesCount, 1500);
+
+                // --- 2. Render Gallery ---
+                const allProducts = await getAllProducts();
+                const recentProducts = allProducts.slice(0, 8);
+                const galleryContainer = document.getElementById('homeGallery');
+                
+                if (recentProducts.length > 0) {
+                    galleryContainer.innerHTML = '';
+                    const creatorCache = {};
+
+                    for (const p of recentProducts) {
+                         if (!creatorCache[p.creator_id]) {
+                            const u = await getUserByCreatorId(p.creator_id);
+                            creatorCache[p.creator_id] = u ? u.name : 'Unknown';
+                        }
+                        
+                        const html = `
+                            <div class="col-pin">
+                                <a href="javascript:void(0)" onclick="checkAccess('${p.product_id}')" class="card shadow-sm text-decoration-none text-dark h-100">
+                                    <div class="card-img-wrapper">
+                                        <img src="${p.image_url || 'https://via.placeholder.com/400x300.png?text=Karya'}" alt="${p.title}" loading="lazy">
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <h5 class="card-title fw-bold text-truncate mb-1" style="font-size: 1rem;">${p.title}</h5>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <small class="text-muted text-truncate" style="max-width: 60%;">by ${creatorCache[p.creator_id]}</small>
+                                            <span class="badge bg-light text-primary border border-primary-subtle">${p.price}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                        galleryContainer.innerHTML += html;
+                    }
+                } else {
+                    galleryContainer.innerHTML = '<div class="text-center w-100 py-5 text-muted">Belum ada karya yang diunggah.</div>';
+                }
+
+            } catch (err) { console.error(err); }
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) { document.getElementById(id).innerText = end; return; }
+            const range = end - start;
+            let current = start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            const obj = document.getElementById(id);
+            
+            // Jika angka terlalu besar, percepat animasi
+            const actualStepTime = Math.max(stepTime, 20); 
+            const jump = Math.ceil(range / (duration / actualStepTime));
+
+            const timer = setInterval(function() {
+                current += jump;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                obj.innerHTML = current.toLocaleString('id-ID');
+            }, actualStepTime);
+        }
+
+        initHome();
+    </script>
+</body>
+</html>

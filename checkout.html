@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfirmasi Pesanan - Karyaku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="home.html">Karyaku</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="marketplace.html">Marketplace</a></li>
+                    <li class="nav-item"><a class="nav-link" href="creator-profile.html">Kreator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5 pb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="text-center fw-bold mb-4">Konfirmasi Pesanan</h2>
+                        <div id="checkoutProductInfo" class="mb-4">
+                            <div class="d-flex align-items-center mb-3 border-bottom pb-3">
+                                <img id="productCheckoutImage" src="https://via.placeholder.com/100x100.png?text=Art" class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;" alt="Produk">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-0 fw-bold" id="productCheckoutName">Memuat Produk...</h5>
+                                    <p class="mb-0 text-muted small">Kreator: <span id="creatorCheckoutName">...</span></p>
+                                </div>
+                                <h5 class="fw-bold text-primary mb-0" id="productCheckoutPrice">Rp 0</h5>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="alert-heading mb-0">Rincian Pembeli:</h6>
+                            <p class="mb-0 small">Pembeli: <span id="buyerName"></span></p>
+                            <p class="mb-0 small">Email: <span id="buyerEmail"></span></p>
+                            <p class="mt-2 mb-0 small fst-italic">Pastikan email di atas benar, karena link unduh akan dikirim ke sana setelah pembayaran berhasil.</p>
+                        </div>
+
+                        <h4 class="mt-4 mb-3 fw-bold">Total Pembayaran</h4>
+                        <div class="d-flex justify-content-between">
+                            <p>Harga Karya:</p>
+                            <p class="fw-bold" id="subtotalPrice">Rp 0</p>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-2">
+                            <h5 class="fw-bold text-primary">Total:</h5>
+                            <h5 class="fw-bold text-primary" id="totalPrice">Rp 0</h5>
+                        </div>
+                        
+                        <a href="javascript:void(0)" id="confirmCheckoutButton" class="btn btn-lg btn-primary w-100 mt-4">Lanjut ke Pembayaran QRIS</a>
+                        <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary w-100 mt-2">Batalkan</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p>&copy; 2025 Karyaku. All Rights Reserved.</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+    <script src="db-utils.js"></script>
+    <script src="navbar-utils.js"></script>
+    
+    <script>
+        // Data produk default (harus konsisten dengan product-detail.html)
+        const defaultProducts = {
+            'aysar_berkelana': {
+                name: "Berkelana", creator: "Muhammad Aysar Rayyya", creator_id: "aysar", price: "Rp 250.000",
+                img: "https://instructor-academy.onlinecoursehost.com/content/images/2023/05/58_Top-10-Successful-Graphic-Design-Course-Creators.jpg"
+            },
+            'shafa_tech': {
+                name: "Tech Innovation", creator: "Shafa Lifia", creator_id: "shafa", price: "Rp 180.041",
+                img: "https://tse1.mm.bing.net/th/id/OIP.k_DhPlgpaSDciS5H9SoEZgHaE8?pid=Api&P=0&h=180"
+            },
+            // ... tambahkan produk default lainnya dari product-detail.html
+        };
+        let products = {};
+
+        async function loadProductData(productId) {
+            try {
+                await initDatabase();
+                const dbProduct = await getProductById(productId);
+                
+                if (dbProduct) {
+                    const user = await getUserByCreatorId(dbProduct.creator_id);
+                    return {
+                        id: dbProduct.product_id,
+                        name: dbProduct.title,
+                        creator: user ? user.name : 'Unknown Creator',
+                        creator_id: dbProduct.creator_id,
+                        price: dbProduct.price,
+                        img: dbProduct.image_url || 'https://via.placeholder.com/100x100.png?text=Karya'
+                    };
+                }
+                
+                // Fallback to default product list
+                const defaultProduct = defaultProducts[productId];
+                if (defaultProduct) {
+                    return {
+                        id: productId,
+                        name: defaultProduct.name,
+                        creator: defaultProduct.creator,
+                        creator_id: defaultProduct.creator_id,
+                        price: defaultProduct.price,
+                        img: defaultProduct.img
+                    };
+                }
+
+                return null;
+            } catch (error) {
+                console.error('Error loading product for checkout:', error);
+                return null;
+            }
+        }
+        
+        async function initCheckoutPage() {
+            const IS_LOGGED_IN = localStorage.getItem('karyaku_is_logged_in') === 'true';
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+
+            if (!IS_LOGGED_IN || !productId) {
+                alert("Akses tidak valid. Silakan kembali ke halaman produk.");
+                window.location.href = 'home.html';
+                return;
+            }
+
+            const product = await loadProductData(productId);
+            if (!product) {
+                alert("Produk tidak ditemukan.");
+                window.location.href = 'marketplace.html';
+                return;
+            }
+
+            // Simpan detail produk ke LocalStorage agar bisa diakses di payment.html
+            localStorage.setItem('karyaku_checkout_item', JSON.stringify(product));
+            
+            // Tampilkan detail produk dan pembeli
+            const priceValue = product.price.replace(/[^0-9,]/g, '').replace(',', '.');
+
+            document.getElementById('productCheckoutName').textContent = product.name;
+            document.getElementById('creatorCheckoutName').textContent = product.creator;
+            document.getElementById('productCheckoutPrice').textContent = product.price;
+            document.getElementById('subtotalPrice').textContent = product.price;
+            document.getElementById('totalPrice').textContent = product.price;
+            document.getElementById('productCheckoutImage').src = product.img;
+
+            document.getElementById('buyerName').textContent = localStorage.getItem('karyaku_username') || 'Pengguna Karyaku';
+            document.getElementById('buyerEmail').textContent = localStorage.getItem('karyaku_user_email') || 'email@karyaku.test';
+
+            // Set link ke halaman pembayaran
+            document.getElementById('confirmCheckoutButton').href = `payment.html?id=${productId}`;
+        }
+
+        initCheckoutPage();
+    </script>
+</body>
+</html>
